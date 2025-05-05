@@ -151,8 +151,9 @@ class InstructionSequence:
         """
         # Add two newline gap between main prompt and rest of the instructions.
         text = self.initial_prompt + separator # Start with the initial prompt.
-        for instruction in self.instructions:
-            text += separator + instruction # Append the instruction.
+        test += "Follow the instructions below closely to generate the code" + separator
+        for i, instruction in enumerate(self.instructions):
+            text += separator + f"{str(i)} - " + instruction # Append the instruction.
         return text  # Return the full concatenated text.
     
     def get_next_prompt(self, template: str, separator: str = "\n") -> str:

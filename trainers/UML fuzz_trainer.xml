@@ -1,0 +1,120 @@
+@startuml
+title Instruction-level Fuzzing Trainer (GFlowNet)
+
+'======================
+' 1 ▸ Core data classes
+'======================
+class FuzzTrainerConfig {
+  +exp_name               : str
+  +save_dir               : str
+  +wandb_project          : str
+  +prompt_file            : str
+  +few_shot_file          : str
+  ..
+  +model_name             : str
+  +sft_ckpt               : str
+  +victim_model           : str
+  +dtype                  : str
+  +gpu_memory_utilization : float
+  ..
+  +batch_size             : int
+  +train_steps            : int
+  +grad_acc_steps         : int
+  +lr                     : float
+  +max_norm               : float
+  ..
+  +lora_r / alpha / drop  : int / int / float
+  +temp_low / temp_high   : float
+  +max_len / max_instr    : int
+  +victim_max_len         : int
+  +min_len                : int
+  +beta                   : float
+  ..
+  +instruction_template   : str
+  +instruction_separator  : str
+  --
+  +as_dict() : Dict
+}
+
+class InstructionSequence {
+  -initial_prompt : str
+  -instructions   : List<str>
+  --
+  +add_instruction(str)
+  +get_full_text(template="", sep="\n") : str
+  +get_next_prompt(template, sep="\n")  : str
+  +__len__() : int
+}
+
+class InstructionSampler {
+  -model     : AutoModelForCausalLM
+  -tokenizer : AutoTokenizer
+  --
+  +generate_instruction(...)
+  +generate_instruction_sequence(...)
+  -_avg_pooling(...)
+}
+
+class InstructionEvaluator {
+  -model           : AutoModelForCausalLM
+  -tokenizer       : AutoTokenizer
+  -victim_model    : LLM
+  -victim_tok      : AutoTokenizer
+  -toxicity_fn     : *
+  -sampling_params : SamplingParams
+  --
+  +compute_instruction_reward(...)
+}
+
+class InstructionBuffer {
+  -max_size            : int
+  -prioritization      : bool
+  -sequences           : List<InstructionSequence>
+  -lm_rewards / c_rewards / composite_rewards
+  -log_probs / log_zs  : List<float>
+  --
+  +add(...)
+  +sample(batch_size)
+  +size() : int
+  +save(file)
+  +load(file)
+}
+
+'======================
+' 2 ▸ Trainer
+'======================
+class FuzzTrainer {
+  -config        : FuzzTrainerConfig
+  -device        : torch.device
+  -model         : AutoModelForCausalLM(+LoRA)
+  -tokenizer     : AutoTokenizer
+  -victim_model  : LLM
+  -sampler       : InstructionSampler
+  -evaluator     : InstructionEvaluator
+  -ibuffer       : InstructionBuffer
+  -optimizer     : AdamW
+  -scheduler     : LR-sched
+  --
+  +train()
+  +evaluate() : Dict
+  --
+  -_setup_*()           ' helper initialisers
+  -_simulate_instruction_experience(...)
+  -_get_batch_metrics(...)
+  -_compute_tb_loss(...)
+  -_save_checkpoint(...)
+  -_load_checkpoint(...)
+}
+
+'======================
+' 3 ▸ Relationships
+'======================
+FuzzTrainerConfig  "1"  <-- "1" FuzzTrainer : uses
+InstructionSequence "1" o-- "*" InstructionBuffer : stored\nin
+InstructionSampler  "1"  --> "1" InstructionSequence : creates
+InstructionEvaluator "1" --> "1" InstructionSequence : evaluates
+FuzzTrainer "1" *-- "1" InstructionSampler
+FuzzTrainer "1" *-- "1" InstructionEvaluator
+FuzzTrainer "1" *-- "1" InstructionBuffer
+
+@enduml
