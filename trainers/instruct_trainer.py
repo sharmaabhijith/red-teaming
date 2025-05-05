@@ -81,7 +81,7 @@ class ExpanderConfig:
 # -----------------------------------------------------------------------------
 
 
-class InstructionExpanderTrainer:
+class InstructionTrainer:
     """Build dataset, attach LoRA adapters, and train."""
 
     def __init__(self, cfg: ExpanderConfig):
@@ -229,20 +229,20 @@ class ExpanderArgs(Tap):
 
 
 def parse_args() -> ExpanderConfig:
-    a = ExpanderArgs().parse_args()
+    args = ExpanderArgs().parse_args()
     return ExpanderConfig(
-        num_epochs=a.epochs,
-        batch_size=a.batch_size,
-        evol_weight=a.evol_weight,
-        oci_weight=a.oci_weight,
-        dataset_type=a.datatype,
-        out_dir=a.out_dir,
+        num_epochs=args.epochs,
+        batch_size=args.batch_size,
+        evol_weight=args.evol_weight,
+        oci_weight=args.oci_weight,
+        dataset_type=args.datatype,
+        out_dir=args.out_dir,
     )
 
 
 if __name__ == "__main__":
     cfg = parse_args()
-    trainer = InstructionExpanderTrainer(cfg)
+    trainer = InstructionTrainer(cfg)
     trainer.train()
 
     # Sanity check
